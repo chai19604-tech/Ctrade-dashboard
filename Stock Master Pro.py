@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 # --- 1. ตั้งค่าหน้าเว็บ ---
-st.set_page_config(page_title="Stock Master Pro", layout="wide", page_icon="📈")
+st.set_page_config(page_title="Stock Master Pro + Banker", layout="wide", page_icon="🏦")
 
 # --- 2. Sidebar ---
 st.sidebar.header("⚙️ ตั้งค่าการวิเคราะห์")
@@ -27,109 +27,105 @@ def load_data(symbol, period, interval):
     except Exception as e:
         return None
 
+# --- ฟังก์ชันคำนวณ Banker Volume (สูตรจำลอง MCDX) ---
+def calculate_banker_volume(df):
+    # ใช้ RSI 2 ชุดเพื่อวัดพลังของเทรนด์และเงินทุน
+    # สูตรนี้เป็นการ Estimate พฤติกรรมเจ้ามือ (ไม่ใช่ข้อมูล Dark Pool จริง)
+    rsi_banker = ta.rsi(df['Close'], length=50) # Banker มองยาว
+    rsi_hot = ta.rsi(df['Close'], length=40)    # Hot Money มองกลาง
+    
+    # คำนวณค่าพลัง (Sensitivity Adjustment)
+    df['Banker_Val'] = (rsi_banker - 50) * 1.5 
+    df['HotMoney_Val'] = (rsi_hot - 30) * 0.7
+    
+    # Clean ค่าให้ไม่ติดลบ และไม่เกิน 20 (เพื่อให้กราฟสวยเหมือนต้นฉบับ)
+    df['Banker_Val'] = df['Banker_Val'].clip(lower=0, upper=20)
+    df['HotMoney_Val'] = df['HotMoney_Val'].clip(lower=0, upper=20)
+    
+    return df
+
 # --- 4. ส่วนแสดงผลหลัก ---
-st.title(f"📈 {symbol} Analysis Dashboard")
+st.title(f"🏦 {symbol} Smart Money Analysis")
 
 if run_button:
-    with st.spinner(f'กำลังวิเคราะห์ {symbol} ...'):
+    with st.spinner(f'กำลังแกะรอยรายใหญ่ {symbol} ...'):
         df = load_data(symbol, period, timeframe)
         
-    if df is None:
-        st.error("❌ ไม่พบข้อมูลหุ้นตัวนี้")
-    elif len(df) < 30:
-        st.warning("⚠️ ข้อมูลหุ้นมีน้อยเกินไป")
+    if df is None or len(df) < 60:
+        st.error("❌ ข้อมูลไม่เพียงพอสำหรับคำนวณ Banker Volume")
     else:
         try:
             # --- คำนวณ Indicators ---
             df['EMA_12'] = df.ta.ema(length=12)
             df['EMA_26'] = df.ta.ema(length=26)
             df['RSI'] = df.ta.rsi(length=14)
-            df['OBV'] = df.ta.obv()
-            df['AOBV'] = df['OBV'].rolling(window=30).mean()
             
-            # Bollinger Bands (ใช้ดูแนวรับแนวต้าน)
-            bb = df.ta.bbands(length=20, std=2)
-            df = pd.concat([df, bb], axis=1)
-            # ตั้งชื่อตัวแปรให้เรียกง่ายๆ (ชื่อ column จาก pandas_ta อาจยาว)
-            bbl = df.columns[df.columns.str.startswith('BBL')][0]
-            bbm = df.columns[df.columns.str.startswith('BBM')][0]
-            bbu = df.columns[df.columns.str.startswith('BBU')][0]
-
-            # High เดิม 20 วัน (Resistance)
-            df['High_20'] = df['High'].rolling(20).max()
-
-            # ลบค่า NaN
+            # คำนวณ Banker
+            df = calculate_banker_volume(df)
+            
+            # ลบค่าว่าง
             df.dropna(inplace=True)
             last = df.iloc[-1]
 
-            # --- คำนวณจุดซื้อ/ขาย 3 ระดับ ---
-            # จุดซื้อ (Supports)
-            buy1 = last['EMA_26']
-            buy2 = last[bbm] # เส้นกลาง
-            buy3 = last[bbl] # เส้นล่าง (ถูกสุด)
-
-            # จุดขาย (Resistances)
-            sell1 = last[bbu] # เส้นบน
-            sell2 = last['High_20'] # ยอดเดิม
-            sell3 = last['High_20'] * 1.05 # ยอดเดิม + 5% (Breakout)
-
-            # --- สร้างกราฟ ---
+            # --- สร้างกราฟ 3 ช่อง (Price / Banker / RSI) ---
             fig = make_subplots(rows=3, cols=1, shared_xaxes=True, 
-                                vertical_spacing=0.05, row_heights=[0.6, 0.2, 0.2],
-                                subplot_titles=(f"Price Strategy: {symbol}", "RSI", "Volume Flow"))
+                                vertical_spacing=0.05, row_heights=[0.5, 0.25, 0.25],
+                                subplot_titles=(f"Price Action: {symbol}", "💰 Banker Volume (MCDX Model)", "Momentum (RSI)"))
 
-            # Price & Bands
+            # 1. Price & EMA
             fig.add_trace(go.Candlestick(x=df.index, open=df['Open'], high=df['High'],
                                          low=df['Low'], close=df['Close'], name='Price'), row=1, col=1)
             fig.add_trace(go.Scatter(x=df.index, y=df['EMA_12'], line=dict(color='#00ff00', width=1), name='EMA 12'), row=1, col=1)
             fig.add_trace(go.Scatter(x=df.index, y=df['EMA_26'], line=dict(color='#ff0000', width=1), name='EMA 26'), row=1, col=1)
-            fig.add_trace(go.Scatter(x=df.index, y=df[bbu], line=dict(color='gray', width=1, dash='dot'), name='Upper Band'), row=1, col=1)
-            fig.add_trace(go.Scatter(x=df.index, y=df[bbl], line=dict(color='gray', width=1, dash='dot'), name='Lower Band'), row=1, col=1)
 
-            # RSI & OBV
-            fig.add_trace(go.Scatter(x=df.index, y=df['RSI'], line=dict(color='#aa00ff', width=2), name='RSI'), row=2, col=1)
-            fig.add_hline(y=70, line_dash="dot", line_color="red", row=2, col=1)
-            fig.add_hline(y=30, line_dash="dot", line_color="green", row=2, col=1)
-            fig.add_trace(go.Scatter(x=df.index, y=df['OBV'], line=dict(color='cyan', width=1), name='OBV'), row=3, col=1)
-            fig.add_trace(go.Scatter(x=df.index, y=df['AOBV'], line=dict(color='orange', width=1, dash='dash'), name='AOBV'), row=3, col=1)
+            # 2. Banker Volume (Bar Chart)
+            # สร้างสีตามค่า (แดง=เจ้ามือ, เหลือง=เก็งกำไร, เขียว=รายย่อย)
+            colors = []
+            for b in df['Banker_Val']:
+                if b > 10: colors.append('red')      # เจ้ามือเข้าหนัก
+                elif b > 5: colors.append('orange')  # เริ่มเข้า
+                else: colors.append('green')         # รายย่อย/ไม่มีเจ้า
+            
+            fig.add_trace(go.Bar(x=df.index, y=df['Banker_Val'], name='Banker Flow', marker_color=colors), row=2, col=1)
+            # ขีดเส้นระดับเจ้ามือครองตลาด (>10)
+            fig.add_hline(y=10, line_dash="dot", line_color="white", row=2, col=1, annotation_text="Strong Banker")
 
-            fig.update_layout(height=800, xaxis_rangeslider_visible=False, template="plotly_dark")
+            # 3. RSI
+            fig.add_trace(go.Scatter(x=df.index, y=df['RSI'], line=dict(color='#aa00ff', width=2), name='RSI'), row=3, col=1)
+            fig.add_hline(y=70, line_dash="dot", line_color="red", row=3, col=1)
+            fig.add_hline(y=30, line_dash="dot", line_color="green", row=3, col=1)
+
+            fig.update_layout(height=900, xaxis_rangeslider_visible=False, template="plotly_dark")
             st.plotly_chart(fig, use_container_width=True)
 
-            # --- 📊 แสดงผลวิเคราะห์ ---
-            st.subheader("🎯 กลยุทธ์การเทรด (Strategy)")
+            # --- 📊 วิเคราะห์รายใหญ่ (Banker Analysis) ---
+            st.subheader("🕵️ เจาะลึกพฤติกรรมรายใหญ่")
+            c1, c2, c3 = st.columns(3)
             
-            # Logic สัญญาณหลัก
-            trend_up = last['EMA_12'] > last['EMA_26']
-            vol_up = last['OBV'] > last['AOBV']
-            rsi_ok = last['RSI'] < 70
-
-            if trend_up and vol_up and rsi_ok:
-                st.success(f"✅ SIGNAL: **BUY (ซื้อ)** - ราคา {last['Close']:.2f}")
-                st.caption("เทรนด์ขาขึ้น + วอลุ่มเข้า + ราคายังไม่แพงเกินไป")
-            elif not trend_up:
-                st.error(f"❌ SIGNAL: **SELL / AVOID (ขาย/เลี่ยง)** - ราคา {last['Close']:.2f}")
-                st.caption("เทรนด์เป็นขาลง (EMA 12 < 26) รอให้กลับตัวก่อนค่อยเข้า")
-            else:
-                st.warning(f"⏸ SIGNAL: **WAIT (รอ)** - ราคา {last['Close']:.2f}")
-                st.caption("สัญญาณขัดแย้งกัน (อาจจะพักตัว หรือวอลุ่มหาย)")
-
-            st.markdown("---")
-
-            # --- ตารางเป้าหมายราคา (The Magic Table) ---
-            c1, c2 = st.columns(2)
+            banker_score = last['Banker_Val']
             
             with c1:
-                st.markdown("### 🛡️ แนวรับ (จุดรอซื้อ)")
-                st.info(f"**ไม้ที่ 1:** {buy1:.2f} (EMA 26)")
-                st.info(f"**ไม้ที่ 2:** {buy2:.2f} (Middle Band)")
-                st.success(f"**ไม้ที่ 3:** {buy3:.2f} (Lower Band - ของถูก)")
+                st.metric("RSI Status", f"{last['RSI']:.2f}", "Overbought" if last['RSI']>70 else "Neutral")
             
             with c2:
-                st.markdown("### ⚔️ แนวต้าน (เป้าขาย)")
-                st.warning(f"**เป้าที่ 1:** {sell1:.2f} (Upper Band)")
-                st.warning(f"**เป้าที่ 2:** {sell2:.2f} (High เดิม)")
-                st.error(f"**เป้าที่ 3:** {sell3:.2f} (Breakout +5%)")
+                # แปลความหมายแท่งแดง
+                if banker_score > 15:
+                    st.metric("Banker Status", "🚀 VERY STRONG", "เจ้ามือคุมตลาด 100%")
+                elif banker_score > 10:
+                    st.metric("Banker Status", "🔥 STRONG", "เจ้ามือเริ่มดันราคา")
+                elif banker_score > 5:
+                    st.metric("Banker Status", "⚠️ WEAK", "รายย่อยยังเยอะอยู่")
+                else:
+                    st.metric("Banker Status", "❌ NONE", "ไม่มีเจ้ามือ")
+            
+            with c3:
+                # คำแนะนำ
+                if banker_score > 10 and last['EMA_12'] > last['EMA_26']:
+                    st.success("**ACTION: FOLLOW BUY** (ตามน้ำเจ้ามือ)")
+                elif banker_score < 5 and last['EMA_12'] < last['EMA_26']:
+                    st.error("**ACTION: AVOID** (อย่าเพิ่งรับมีด)")
+                else:
+                    st.warning("**ACTION: WAIT** (รอความชัดเจน)")
 
         except Exception as e:
             st.error(f"Error: {e}")
