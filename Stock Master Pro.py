@@ -12,40 +12,45 @@ st.set_page_config(page_title="Institutional Trading Terminal", layout="wide", p
 # วางโค้ดนี้ต่อจาก st.set_page_config(...)
 st.markdown("""
 <style>
-    /* 1. พื้นหลังหลัก - น้ำเงินเข้มไล่เฉด */
+    /* 1. พื้นหลังหลัก (Main Background) - สีดำด้าน ไล่เฉดนิดๆ */
     .stApp {
-        background: linear-gradient(180deg, #021B39 0%, #000000 100%);
-        color: #ffffff;
+        background: linear-gradient(to bottom right, #000000, #1a1a1a);
+        color: #e0e0e0;
     }
     
-    /* 2. Sidebar */
+    /* 2. Sidebar (แถบซ้าย) - สีเทาเข้มเกือบดำ */
     [data-testid="stSidebar"] {
-        background-color: #01122aa0; /* โปร่งแสงนิดๆ */
-        backdrop-filter: blur(10px);
+        background-color: #0e1117;
+        border-right: 1px solid #333;
     }
 
-    /* 3. กล่อง Metric */
+    /* 3. กล่อง Metric (การ์ดแสดงตัวเลข) - แต่งให้ดูมีมิติ */
     div[data-testid="metric-container"] {
-        background: rgba(255, 255, 255, 0.05); /* กระจกใส */
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        padding: 10px;
-        border-radius: 10px;
+        background-color: #1e1e1e;
+        border: 1px solid #333;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
     }
     
-    /* 4. หัวข้อ */
+    /* 4. ตัวหนังสือหัวข้อ (Headers) */
     h1, h2, h3 {
-        color: #4da6ff !important; /* ฟ้าสว่าง */
+        color: #00ffbf !important; /* สีเขียวนีออน */
+        font-family: 'Roboto', sans-serif;
     }
-</style>
-""", unsafe_allow_html=True)
-# Custom CSS: Dark Mode & Professional Typography
-st.markdown("""
-<style>
-    .reportview-container { background: #0e1117; }
-    .stMetric { background-color: #1e1e1e; padding: 10px; border-radius: 5px; border-left: 5px solid #00F0FF; }
-    h1, h2, h3, h4 { font-family: 'Roboto', sans-serif; color: #e0e0e0; }
-    .stAlert { background-color: #262730; color: #ff4b4b; border: 1px solid #444; }
-    div[data-testid="stExpander"] div[role="button"] p { font-size: 1.1rem; font-weight: bold; }
+    
+    /* 5. ปุ่มกด (Button) */
+    .stButton>button {
+        background-color: #00ffbf;
+        color: black;
+        border-radius: 20px;
+        font-weight: bold;
+        border: none;
+    }
+    .stButton>button:hover {
+        background-color: #00cc99;
+        color: white;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -224,4 +229,5 @@ else:
             st.markdown("**:red[INSTITUTIONAL CONTROL]**")
         else:
             st.markdown("**:green[RETAIL CONTROL]**")
+
 
