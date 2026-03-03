@@ -9,82 +9,65 @@ import numpy as np
 
 # --- 1. SYSTEM CONFIGURATION (หน้าจระดับสถาบัน) ---
 st.set_page_config(page_title="Institutional Trading Terminal", layout="wide", page_icon="🏛️")
-# --- CUSTOM CSS: MODERN GLASS DARK THEME ---
+# --- CUSTOM CSS: HIGH CONTRAST PRO THEME ---
 st.markdown("""
 <style>
-    /* 1. พื้นหลัง (Background) - สีดำ Deep Black ผสมแสง Glow */
+    /* 1. บังคับพื้นหลังสีดำสนิท เพื่อลดแสงสะท้อน */
     .stApp {
-        background-color: #050505;
-        background-image: radial-gradient(circle at 50% 0%, #1e1e2e 0%, #050505 60%);
-        background-attachment: fixed;
+        background-color: #000000;
+        color: #FFFFFF; /* บังคับตัวหนังสือสีขาว */
     }
 
-    /* 2. Sidebar (แถบซ้าย) - กระจกฝ้า */
+    /* 2. Sidebar สีเทาเข้ม ตัดกับพื้นหลังหลัก */
     [data-testid="stSidebar"] {
-        background-color: rgba(10, 10, 15, 0.7);
-        backdrop-filter: blur(20px); /* เบลอฉากหลัง */
-        border-right: 1px solid rgba(255, 255, 255, 0.05);
-    }
-    
-    /* 3. การ์ดแสดงผล (Metrics Cards) - Glassmorphism */
-    div[data-testid="metric-container"] {
-        background: rgba(255, 255, 255, 0.03); /* โปร่งแสง */
-        border: 1px solid rgba(255, 255, 255, 0.08); /* เส้นขอบบางๆ */
-        border-radius: 16px; /* มุมมนทันสมัย */
-        padding: 15px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3); /* เงาลอย */
-        transition: transform 0.2s ease;
-    }
-    div[data-testid="metric-container"]:hover {
-        transform: translateY(-2px); /* ลอยขึ้นเมื่อเอาเมาส์ชี้ */
-        border-color: rgba(0, 240, 255, 0.3); /* เรืองแสงสีฟ้า */
+        background-color: #111111;
+        border-right: 1px solid #333;
     }
 
-    /* 4. ตัวหนังสือ (Typography) - Font ทันสมัย */
-    h1, h2, h3 {
-        font-family: 'Inter', sans-serif;
-        background: -webkit-linear-gradient(45deg, #00F0FF, #0057FF); /* ไล่สีตัวหนังสือ */
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-weight: 700;
-        letter-spacing: -0.5px;
+    /* 3. กล่องตัวเลข (Metrics) - พื้นหลังสีเทา ตัวหนังสือขาวชัดเจน */
+    div[data-testid="metric-container"] {
+        background-color: #222222;
+        border: 1px solid #444;
+        border-radius: 8px;
+        padding: 15px;
+        color: #FFFFFF;
     }
     
-    /* 5. ปุ่มกด (Modern Button) */
+    /* 4. บังคับสี Label ตัวเลขให้เป็นสีขาว (แก้ปัญหาตัวหนังสือจาง) */
+    div[data-testid="metric-container"] label {
+        color: #AAAAAA !important; /* สีเทาอ่อน */
+    }
+    div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
+        color: #FFFFFF !important; /* สีขาวจั๊วะ */
+    }
+
+    /* 5. หัวข้อ (Headers) สีทอง/เหลือง ให้ดูแพงและเด่น */
+    h1, h2, h3, h4, h5, h6 {
+        color: #FFD700 !important; /* สีทอง */
+        font-family: 'Roboto', sans-serif;
+    }
+    
+    /* 6. ปุ่มกด - สีเขียวสว่าง */
     .stButton>button {
-        background: linear-gradient(90deg, #00C6FF 0%, #0072FF 100%);
-        color: white;
+        background-color: #00FF00;
+        color: black;
         border: none;
-        border-radius: 12px;
-        padding: 0.5rem 1rem;
-        font-weight: 600;
-        box-shadow: 0 4px 15px rgba(0, 114, 255, 0.4);
-        transition: all 0.3s ease;
+        font-weight: bold;
+        border-radius: 5px;
     }
     .stButton>button:hover {
-        box-shadow: 0 6px 20px rgba(0, 114, 255, 0.6);
-        transform: scale(1.02);
+        background-color: #00CC00;
+        color: white;
     }
 
-    /* 6. กราฟ (Charts) - พื้นหลังโปร่ง */
-    .js-plotly-plot .plotly .main-svg {
-        background: rgba(0,0,0,0) !important;
+    /* 7. Input Box (ช่องกรอกข้อความ) - ให้พื้นหลังขาว ตัวหนังสือดำ */
+    input {
+        color: black !important;
     }
     
-    /* 7. ปรับแต่ง Scrollbar ให้เล็กและสวย */
-    ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-    }
-    ::-webkit-scrollbar-track {
-        background: #050505; 
-    }
-    ::-webkit-scrollbar-thumb {
-        background: #333; 
-        border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-        background: #555; 
+    /* 8. ข้อความปกติทั่วไประบุสีขาว */
+    p, span, div {
+        color: #E0E0E0;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -264,6 +247,7 @@ else:
             st.markdown("**:red[INSTITUTIONAL CONTROL]**")
         else:
             st.markdown("**:green[RETAIL CONTROL]**")
+
 
 
 
