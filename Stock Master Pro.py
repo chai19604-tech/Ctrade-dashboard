@@ -9,7 +9,35 @@ import numpy as np
 
 # --- 1. SYSTEM CONFIGURATION (หน้าจระดับสถาบัน) ---
 st.set_page_config(page_title="Institutional Trading Terminal", layout="wide", page_icon="🏛️")
+# วางโค้ดนี้ต่อจาก st.set_page_config(...)
+st.markdown("""
+<style>
+    /* 1. พื้นหลังหลัก - น้ำเงินเข้มไล่เฉด */
+    .stApp {
+        background: linear-gradient(180deg, #021B39 0%, #000000 100%);
+        color: #ffffff;
+    }
+    
+    /* 2. Sidebar */
+    [data-testid="stSidebar"] {
+        background-color: #01122aa0; /* โปร่งแสงนิดๆ */
+        backdrop-filter: blur(10px);
+    }
 
+    /* 3. กล่อง Metric */
+    div[data-testid="metric-container"] {
+        background: rgba(255, 255, 255, 0.05); /* กระจกใส */
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 10px;
+        border-radius: 10px;
+    }
+    
+    /* 4. หัวข้อ */
+    h1, h2, h3 {
+        color: #4da6ff !important; /* ฟ้าสว่าง */
+    }
+</style>
+""", unsafe_allow_html=True)
 # Custom CSS: Dark Mode & Professional Typography
 st.markdown("""
 <style>
@@ -196,3 +224,4 @@ else:
             st.markdown("**:red[INSTITUTIONAL CONTROL]**")
         else:
             st.markdown("**:green[RETAIL CONTROL]**")
+
