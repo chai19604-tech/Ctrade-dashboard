@@ -13,15 +13,18 @@ st.sidebar.header("⚙️ ตั้งค่าการวิเคราะห
 symbol = st.sidebar.text_input("ชื่อหุ้น (Symbol)", value="NVDA").upper()
 timeframe = st.sidebar.selectbox("Timeframe", ["1d", "1wk", "1mo"])
 period = st.sidebar.selectbox("ย้อนหลัง (Period)", ["1y", "2y", "5y", "max"])
-
-# ปุ่มกดเพื่อเริ่มวิเคราะห์
 run_button = st.sidebar.button("🚀 วิเคราะห์กราฟ")
 
-# --- 3. ฟังก์ชันโหลดข้อมูล (Caching เพื่อความเร็ว) ---
+# --- 3. ฟังก์ชันโหลดข้อมูล (แก้ Bug MultiIndex ตรงนี้!) ---
 @st.cache_data
 def load_data(symbol, period, interval):
     try:
         data = yf.download(symbol, period=period, interval=interval)
+        
+        # 🔧 FIX: ถ้าตารางซ้อนกัน (MultiIndex) ให้ยุบเหลือชั้นเดียว
+        if isinstance(data.columns, pd.MultiIndex):
+            data.columns = data.columns.get_level_values(0)
+            
         return data
     except Exception as e:
         return None
@@ -37,6 +40,7 @@ if run_button:
         st.error("❌ ไม่พบข้อมูลหุ้นตัวนี้ หรือชื่อหุ้นผิด")
     else:
         # --- คำนวณ Indicators ---
+        # ต้องมั่นใจว่ามี column เหล่านี้
         df['EMA_12'] = df.ta.ema(length=12)
         df['EMA_26'] = df.ta.ema(length=26)
         df['RSI'] = df.ta.rsi(length=14)
@@ -64,10 +68,7 @@ if run_button:
         fig.add_trace(go.Scatter(x=df.index, y=df['OBV'], line=dict(color='blue', width=1), name='OBV'), row=3, col=1)
         fig.add_trace(go.Scatter(x=df.index, y=df['AOBV'], line=dict(color='orange', width=1, dash='dash'), name='AOBV (30)'), row=3, col=1)
 
-        # ปรับแต่งกราฟให้สวยงามบนมือถือ
         fig.update_layout(height=800, xaxis_rangeslider_visible=False, template="plotly_dark")
-        
-        # แสดงกราฟ
         st.plotly_chart(fig, use_container_width=True)
 
         # --- ส่วนสรุปสัญญาณ (Signal Summary) ---
@@ -77,23 +78,28 @@ if run_button:
         last_row = df.iloc[-1]
         
         # Signal 1: Trend
-        trend_status = "BULLISH 🐂" if last_row['EMA_12'] > last_row['EMA_26'] else "BEARISH 🐻"
-        col1.metric("Trend (EMA)", trend_status, delta_color="normal")
+        # ใช้ .iloc[-1] เพื่อดึงค่าตัวเดียว ไม่ให้ติด index
+        ema12_val = last_row['EMA_12']
+        ema26_val = last_row['EMA_26']
+        trend_status = "BULLISH 🐂" if ema12_val > ema26_val else "BEARISH 🐻"
+        col1.metric("Trend (EMA)", trend_status)
         
         # Signal 2: RSI
-        rsi_val = round(last_row['RSI'], 2)
+        rsi_val = last_row['RSI']
         rsi_status = "Overbought ⚠️" if rsi_val > 70 else ("Oversold ✅" if rsi_val < 30 else "Neutral")
-        col2.metric("Momentum (RSI)", f"{rsi_val}", rsi_status)
+        col2.metric("Momentum (RSI)", f"{rsi_val:.2f}", rsi_status)
         
         # Signal 3: OBV
-        obv_status = "Strong Volume 💪" if last_row['OBV'] > last_row['AOBV'] else "Weak Volume 💤"
+        obv_val = last_row['OBV']
+        aobv_val = last_row['AOBV']
+        obv_status = "Strong Volume 💪" if obv_val > aobv_val else "Weak Volume 💤"
         col3.metric("Volume Flow", obv_status)
 
         # Final Verdict
         st.markdown("---")
-        if (last_row['EMA_12'] > last_row['EMA_26']) and (last_row['OBV'] > last_row['AOBV']) and (last_row['RSI'] < 70):
+        if (ema12_val > ema26_val) and (obv_val > aobv_val) and (rsi_val < 70):
             st.success("✅ คำแนะนำ: **BUY (ซื้อ)** - ทุกระบบยืนยันแนวโน้มขาขึ้น")
-        elif (last_row['EMA_12'] < last_row['EMA_26']):
+        elif (ema12_val < ema26_val):
             st.error("❌ คำแนะนำ: **SELL / WAIT (ขาย/รอ)** - แนวโน้มเป็นขาลง")
         else:
             st.warning("⏸ คำแนะนำ: **WAIT (รอ)** - สัญญาณยังขัดแย้งกัน")
