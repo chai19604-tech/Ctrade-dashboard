@@ -9,47 +9,82 @@ import numpy as np
 
 # --- 1. SYSTEM CONFIGURATION (หน้าจระดับสถาบัน) ---
 st.set_page_config(page_title="Institutional Trading Terminal", layout="wide", page_icon="🏛️")
-# วางโค้ดนี้ต่อจาก st.set_page_config(...)
+# --- CUSTOM CSS: MODERN GLASS DARK THEME ---
 st.markdown("""
 <style>
-    /* 1. พื้นหลังหลัก (Main Background) - สีดำด้าน ไล่เฉดนิดๆ */
+    /* 1. พื้นหลัง (Background) - สีดำ Deep Black ผสมแสง Glow */
     .stApp {
-        background: linear-gradient(to bottom right, #000000, #1a1a1a);
-        color: #e0e0e0;
-    }
-    
-    /* 2. Sidebar (แถบซ้าย) - สีเทาเข้มเกือบดำ */
-    [data-testid="stSidebar"] {
-        background-color: #0e1117;
-        border-right: 1px solid #333;
+        background-color: #050505;
+        background-image: radial-gradient(circle at 50% 0%, #1e1e2e 0%, #050505 60%);
+        background-attachment: fixed;
     }
 
-    /* 3. กล่อง Metric (การ์ดแสดงตัวเลข) - แต่งให้ดูมีมิติ */
+    /* 2. Sidebar (แถบซ้าย) - กระจกฝ้า */
+    [data-testid="stSidebar"] {
+        background-color: rgba(10, 10, 15, 0.7);
+        backdrop-filter: blur(20px); /* เบลอฉากหลัง */
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    /* 3. การ์ดแสดงผล (Metrics Cards) - Glassmorphism */
     div[data-testid="metric-container"] {
-        background-color: #1e1e1e;
-        border: 1px solid #333;
+        background: rgba(255, 255, 255, 0.03); /* โปร่งแสง */
+        border: 1px solid rgba(255, 255, 255, 0.08); /* เส้นขอบบางๆ */
+        border-radius: 16px; /* มุมมนทันสมัย */
         padding: 15px;
-        border-radius: 8px;
-        box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3); /* เงาลอย */
+        transition: transform 0.2s ease;
     }
-    
-    /* 4. ตัวหนังสือหัวข้อ (Headers) */
+    div[data-testid="metric-container"]:hover {
+        transform: translateY(-2px); /* ลอยขึ้นเมื่อเอาเมาส์ชี้ */
+        border-color: rgba(0, 240, 255, 0.3); /* เรืองแสงสีฟ้า */
+    }
+
+    /* 4. ตัวหนังสือ (Typography) - Font ทันสมัย */
     h1, h2, h3 {
-        color: #00ffbf !important; /* สีเขียวนีออน */
-        font-family: 'Roboto', sans-serif;
+        font-family: 'Inter', sans-serif;
+        background: -webkit-linear-gradient(45deg, #00F0FF, #0057FF); /* ไล่สีตัวหนังสือ */
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 700;
+        letter-spacing: -0.5px;
     }
     
-    /* 5. ปุ่มกด (Button) */
+    /* 5. ปุ่มกด (Modern Button) */
     .stButton>button {
-        background-color: #00ffbf;
-        color: black;
-        border-radius: 20px;
-        font-weight: bold;
+        background: linear-gradient(90deg, #00C6FF 0%, #0072FF 100%);
+        color: white;
         border: none;
+        border-radius: 12px;
+        padding: 0.5rem 1rem;
+        font-weight: 600;
+        box-shadow: 0 4px 15px rgba(0, 114, 255, 0.4);
+        transition: all 0.3s ease;
     }
     .stButton>button:hover {
-        background-color: #00cc99;
-        color: white;
+        box-shadow: 0 6px 20px rgba(0, 114, 255, 0.6);
+        transform: scale(1.02);
+    }
+
+    /* 6. กราฟ (Charts) - พื้นหลังโปร่ง */
+    .js-plotly-plot .plotly .main-svg {
+        background: rgba(0,0,0,0) !important;
+    }
+    
+    /* 7. ปรับแต่ง Scrollbar ให้เล็กและสวย */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: #050505; 
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #333; 
+        border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #555; 
     }
 </style>
 """, unsafe_allow_html=True)
@@ -229,5 +264,6 @@ else:
             st.markdown("**:red[INSTITUTIONAL CONTROL]**")
         else:
             st.markdown("**:green[RETAIL CONTROL]**")
+
 
 
